@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!--
+The MIT License (MIT)
+Copyright (c) 2013 Zolmeister
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guitar Type – Free Online Typing Game</title>
+<meta name="description" content="Home row variant of popular Guitar Typing Music Game. Hit keys to become a rock hero typing artist! Several songs available.">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#120a1f;color:#f3e9ff;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;padding:10px 10px 24px;overflow-x:hidden}
+h1{margin:4px 0 2px;font-size:30px;letter-spacing:1px;color:#ffcf5a;text-shadow:0 2px 0 #7a2c00}
+#wrap{position:relative;width:100%;max-width:720px}
+canvas{display:block;width:100%;height:auto;background:#1b1030;border:3px solid #ffcf5a;border-radius:8px}
+#menu,#end{overflow:auto;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(18,10,31,.93);border-radius:6px;text-align:center;padding:16px}
+#end{display:none}
+p{max-width:520px;line-height:1.5;margin:6px 0}
+button{font:700 18px inherit;font-family:inherit;background:#e5383b;color:#fff;border:0;border-radius:6px;padding:11px 26px;margin:6px;cursor:pointer;min-width:230px}
+button:hover{background:#ff5a5d}
+button.alt{background:#3a2a5a}
+#tabs button{min-width:0;padding:9px 16px;font-size:16px;background:#3a2a5a}
+#tabs button.on{background:#e5383b}
+#songs{display:grid;grid-template-columns:1fr 1fr;gap:0 4px}
+#songs button{min-width:0;font-size:15px;padding:9px 12px;margin:4px;background:#5b2a86}
+#songs button:hover{background:#7a3cb0}
+@media(max-width:560px){#songs{grid-template-columns:1fr}}
+button:focus-visible,summary:focus-visible{outline:3px solid #ffcf5a;outline-offset:2px}
+.sm{font-size:14px;color:#c9b8e8}
+#big{font-size:28px;font-weight:700;color:#ffcf5a}
+details{max-width:720px;margin-top:14px;font-size:12px;color:#9c8bbd}
+summary{cursor:pointer}
+pre{white-space:pre-wrap;margin:6px 0}
+</style>
+</head>
+<body>
+<h1>Guitar Type</h1>
+<div id="wrap">
+  <canvas id="c" width="720" height="520"></canvas>
+  <div id="menu">
+    <p>Home row variant of the popular Guitar Typing Music Game. Hit keys to become a rock hero typing artist! Pick your grade level, then a song.</p>
+    <p class="sm">Keys: A S D F J K L ; — press the matching key when a note reaches the line. Hit notes to play the melody. <b>Esc</b> returns to this menu.</p>
+    <div id="tabs"></div>
+    <p class="sm" id="gdesc"></p>
+    <div id="songs"></div>
+  </div>
+  <div id="end">
+    <div id="big"></div>
+    <p id="stats"></p>
+    <button id="again">Play again</button>
+    <button class="alt" id="back">Choose another song</button>
+  </div>
+</div>
+<details>
+<summary>License</summary>
+<pre>The MIT License (MIT)
+Copyright (c) 2013 Zolmeister
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre>
+</details>
+
+<script>
+(function(){
+var KEYS=["a","s","d","f","j","k","l",";"];
+var COL=["#ff4d6d","#ff9f1c","#ffd23f","#6bdc6b","#35d0ba","#3a86ff","#8b5cf6","#e056fd"];
+
+var BASE={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function P(str){return str.trim().split(/\s+/).map(function(t){
+  var p=t.split(":"),n=p[0],d=p[1]?parseFloat(p[1]):1;
+  if(n==="r")return [null,d];
+  var m=/^([A-G])([#b]?)(\d)$/.exec(n);
+  return [BASE[m[1]]+(m[2]==="#"?1:m[2]==="b"?-1:0)+12*(+m[3]+1),d];
+})}
+var ODE="E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 ";
+var ODE2="E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2 ";
+var ODE3="D4 D4 E4 C4 D4 E4:.5 F4:.5 E4 C4 D4 E4:.5 F4:.5 E4 D4 C4 D4 G3:2 ";
+var GRADES=[
+ {name:"Elementary",sub:"Grades 3–5",desc:"Short tunes, few notes, narrow range. Easy to follow and easy to play on recorder or xylophone.",songs:[
+  {name:"Hot Cross Buns",bpm:92,roots:[48,48,48,48],notes:P("E4 D4 C4:2 E4 D4 C4:2 C4:.5 C4:.5 C4:.5 C4:.5 D4:.5 D4:.5 D4:.5 D4:.5 E4 D4 C4:2")},
+  {name:"Twinkle, Twinkle, Little Star",bpm:100,roots:[48,48,53,48,53,48,43,48,48,53,48,43],notes:P("C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2")},
+  {name:"Mary Had a Little Lamb",bpm:104,roots:[48,43,48,43,48,48,43,48],notes:P("E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4")},
+  {name:"Alouette",bpm:116,roots:[48,48,43,48,48,43,48,48],notes:P("G4:.5 G4:.5 A4:.5 G4:.5 E4:1 E4:1 G4:.5 G4:.5 A4:.5 G4:.5 E4:2 C4:.5 D4:.5 E4:.5 F4:.5 G4:1 G4:1 E4:1 G4:1 C5:2")},
+  {name:"Jingle Bells",bpm:132,roots:[48,48,53,48,48,43,48,43,48,48,53,48,48,43,48,48],notes:P("E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:.5 E4:4 F4 F4 F4:1.5 F4:.5 F4 E4 E4 E4:.5 E4:.5 E4 D4 D4 E4 D4:2 G4:2")}
+ ]},
+ {name:"Middle School",sub:"Grades 6–8",desc:"Longer melodies with more rhythm and a wider range. Classic tunes in minor and major keys.",songs:[
+  {name:"Greensleeves",bpm:108,roots:[45,43,45,40,45,43,45,40],notes:P("A4 C5:2 D5 E5:1.5 F5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:2 A4 A4:1.5 G#4:.5 A4 B4:2 G#4 E4:3 A4 C5:2 D5 E5:1.5 F5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:1.5 B4:.5 A4 G#4:1.5 F#4:.5 G#4 A4:3")},
+  {name:"When the Saints Go Marching In",bpm:112,roots:[48,48,48,43,48,48,53,48,43,48],notes:P("C4 E4 F4 G4:4 C4 E4 F4 G4:4 C4 E4 F4 G4:2 E4:2 C4:2 E4:2 D4:6 E4 E4 D4 C4:2 C4 E4 G4:2 G4 F4:1.5 E4:.5 F4 G4 E4 C4 D4 C4:4")},
+  {name:"Amazing Grace",bpm:92,roots:[48,48,53,48,48,48,43,48],notes:P("G4 C5:2 E5:.5 C5:.5 E5:2 D5 C5:2 A4 G4:3 G4 C5:2 E5:.5 C5:.5 E5:2 G5 E5:3 E5 G5:1.5 E5:.5 G5 E5 C5:2 A4 G4:3 G4 C5:2 E5:.5 C5:.5 E5:2 D5 C5:3")},
+  {name:"Silent Night",bpm:84,roots:[48,48,43,48,53,48,43,48],notes:P("G4:1.5 A4:.5 G4 E4:3 G4:1.5 A4:.5 G4 E4:3 D5:2 D5 B4:3 C5:2 C5 G4:3 A4:2 A4 C5:1.5 B4:.5 A4 G4:1.5 A4:.5 G4 E4:3 A4:2 A4 C5:1.5 B4:.5 A4 G4:1.5 A4:.5 G4 E4:3 D5:2 D5 F5:1.5 D5:.5 B4 C5:3 E5:3 C5 G4 E4 G4:1.5 F4:.5 D4 C4:3")},
+  {name:"Ode to Joy",bpm:116,roots:[48,43,48,43,48,43,48,43,43,48,43,48,48,43,48,43,48,43,48,43],notes:P(ODE+ODE2+ODE3+ODE2)}
+ ]},
+ {name:"High School",sub:"Grades 9–12",desc:"Faster, more demanding pieces with wider leaps and quicker rhythms for strong readers.",songs:[
+  {name:"For Elise",bpm:112,roots:[45,40,45,40,45,40,45,40],notes:P("E5:.5 D#5:.5 E5:.5 D#5:.5 E5:.5 B4:.5 D5:.5 C5:.5 A4:1 r:.5 C4:.5 E4:.5 A4:.5 B4:1 r:.5 E4:.5 G#4:.5 B4:.5 C5:1 r:.5 E4:.5 E5:.5 D#5:.5 E5:.5 D#5:.5 E5:.5 B4:.5 D5:.5 C5:.5 A4:1 r:.5 C4:.5 E4:.5 A4:.5 B4:1 r:.5 E4:.5 C5:.5 B4:.5 A4:2")},
+  {name:"Canon in D",bpm:80,roots:[50,47,43,45,50,47,43,45],notes:P("F#5:2 E5:2 D5:2 C#5:2 B4:2 A4:2 B4:2 C#5:2 F#5:2 E5:2 D5:2 C#5:2 B4:2 A4:2 B4:2 C#5:2 D5:1 F#5:1 A5:2 A4:1 C#5:1 E5:2 B4:1 D5:1 F#5:2 G4:1 B4:1 D5:2 D5:4")},
+  {name:"In the Hall of the Mountain King",bpm:128,roots:[47,47,42,47,47,47,42,47],notes:P("B3:.5 C#4:.5 D4:.5 E4:.5 F#4:.5 D4:.5 F#4:1 F4:.5 C#4:.5 F4:1 E4:.5 C4:.5 E4:1 B3:.5 C#4:.5 D4:.5 E4:.5 F#4:.5 D4:.5 F#4:.5 B4:.5 A4:.5 F#4:.5 D4:.5 F#4:.5 A4:1")}
+ ]}
+];
+var cur=null,grade=0;
+var cv=document.getElementById("c"),g=cv.getContext("2d");
+var menu=document.getElementById("menu"),endEl=document.getElementById("end");
+var ac=null,master,shaper,noiseBuf;
+var S=null,raf=0;
+var LANE_W=70,X0=80,HIT=430,FALL=2.8,LEAD=3.5;
+var MISS=.05,WRONG=.05,GAIN=.05,SPEED=[.72,.82,.9]; // 10 misses in a row empty the meter (starts at 50%)
+
+function audio(){
+  if(!ac){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=.7;master.connect(ac.destination);
+    shaper=ac.createWaveShaper();var k=new Float32Array(256);
+    for(var i=0;i<256;i++){var x=i/128-1;k[i]=Math.tanh(x*3)}
+    shaper.curve=k;shaper.connect(master);
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate);
+    var d=noiseBuf.getChannelData(0);for(var j=0;j<d.length;j++)d[j]=Math.random()*2-1;
+  }
+  if(ac.state==="suspended")ac.resume();
+}
+function hz(m){return 440*Math.pow(2,(m-69)/12)}
+function pluck(m,t,dur,vol){
+  var o=ac.createOscillator(),f=ac.createBiquadFilter(),v=ac.createGain();
+  o.type="sawtooth";o.frequency.value=hz(m);
+  f.type="lowpass";f.frequency.setValueAtTime(3200,t);f.frequency.exponentialRampToValueAtTime(500,t+dur);
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(vol,t+.01);v.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(f);f.connect(v);v.connect(shaper);o.start(t);o.stop(t+dur+.05);
+}
+function bass(m,t,dur){
+  var o=ac.createOscillator(),v=ac.createGain();
+  o.type="triangle";o.frequency.value=hz(m-12);
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.35,t+.01);v.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(v);v.connect(master);o.start(t);o.stop(t+dur+.05);
+}
+function kick(t){
+  var o=ac.createOscillator(),v=ac.createGain();
+  o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
+  v.gain.setValueAtTime(.7,t);v.gain.exponentialRampToValueAtTime(.001,t+.18);
+  o.connect(v);v.connect(master);o.start(t);o.stop(t+.2);
+}
+function noise(t,dur,freq,vol){
+  var s=ac.createBufferSource(),f=ac.createBiquadFilter(),v=ac.createGain();
+  s.buffer=noiseBuf;f.type="highpass";f.frequency.value=freq;
+  v.gain.setValueAtTime(vol,t);v.gain.exponentialRampToValueAtTime(.001,t+dur);
+  s.connect(f);f.connect(v);v.connect(master);s.start(t);s.stop(t+dur+.02);
+}
+
+function start(sg){
+  cur=sg;audio();cancelAnimationFrame(raf);
+  var spb=60/(sg.bpm*SPEED[grade]),t0=ac.currentTime+LEAD,b=0,lo=999,hi=0,notes=[];
+  var ps=[];
+  sg.notes.forEach(function(x){if(x[0]!==null&&ps.indexOf(x[0])<0)ps.push(x[0])});
+  ps.sort(function(a,c){return a-c});
+  var np=ps.length,off=np<=8?Math.floor((8-np)/2):0;
+  sg.notes.forEach(function(x){
+    if(x[0]!==null){
+      var r=ps.indexOf(x[0]),lane=np<=8?off+r:Math.round(r/(np-1)*7);
+      notes.push({t:t0+b*spb,m:x[0],d:x[1]*spb,lane:lane,state:0});
+    }
+    b+=x[1];
+  });
+  var total=Math.ceil(b/4)*4;
+  for(var q=0;q<total;q+=.5){
+    var t=t0+q*spb;
+    if(q%1===0&&q%2===0)kick(t);
+    if(q%2===1)noise(t,.12,1800,.25);
+    if(q%.5===0)noise(t,.04,7000,.08);
+    if(q%4===0)bass(sg.roots[(q/4)%sg.roots.length],t,spb*3.6);
+    if(q%4===2)bass(sg.roots[(q/4|0)%sg.roots.length],t,spb*1.8);
+  }
+  S={song:sg,notes:notes,t0:t0,end:t0+b*spb+1.5,score:0,combo:0,best:0,hit:0,miss:0,meter:.5,flash:[0,0,0,0,0,0,0,0],msg:"",msgT:-9,over:false};
+  menu.style.display="none";endEl.style.display="none";
+  loop();
+}
+function judge(dt){dt=Math.abs(dt);return dt<.10?2:dt<.2?1:0}
+function press(k){
+  if(!S||S.over)return;
+  var lane=KEYS.indexOf(k);if(lane<0)return;
+  var now=ac.currentTime,bestN=null,bd=.26;
+  S.flash[lane]=now;
+  S.notes.forEach(function(n){
+    if(n.lane===lane&&n.state===0&&Math.abs(n.t-now)<bd){bd=Math.abs(n.t-now);bestN=n}
+  });
+  if(!bestN){S.combo=0;S.meter=Math.max(0,S.meter-WRONG);return}
+  var j=judge(bestN.t-now);
+  bestN.state=1;S.hit++;S.combo++;S.best=Math.max(S.best,S.combo);
+  S.score+=(j===2?100:60)*(1+Math.min(3,Math.floor(S.combo/10)));
+  S.meter=Math.min(1,S.meter+GAIN);
+  S.msg=j===2?"Perfect!":"Good";S.msgT=now;
+  pluck(bestN.m+12,now,Math.min(1.2,bestN.d*1.6+.2),.5);
+}
+function update(now){
+  S.notes.forEach(function(n){
+    if(n.state===0&&now>n.t+.2){n.state=2;S.miss++;S.combo=0;S.meter=Math.max(0,S.meter-MISS);S.msg="Miss";S.msgT=now}
+  });
+  if(S.meter<=0&&!S.over)finish(false);
+  else if(now>S.end&&!S.over)finish(true);
+}
+function finish(ok){
+  S.over=true;
+  var tot=S.hit+S.miss,acc=tot?Math.round(100*S.hit/tot):0;
+  document.getElementById("big").textContent=ok?"Encore! You rock!":"Booed off the stage…";
+  document.getElementById("stats").innerHTML=S.song.name+" · "+GRADES[grade].name+"<br>Score: "+S.score+" · Accuracy: "+acc+"% · Best combo: "+S.best;
+  endEl.style.display="flex";
+}
+function draw(now){
+  g.clearRect(0,0,720,520);
+  var grd=g.createLinearGradient(0,0,0,520);grd.addColorStop(0,"#1b1030");grd.addColorStop(1,"#3a1450");
+  g.fillStyle=grd;g.fillRect(0,0,720,520);
+  for(var i=0;i<8;i++){
+    g.fillStyle=i%2?"rgba(255,255,255,.05)":"rgba(255,255,255,.09)";
+    g.fillRect(X0+i*LANE_W,0,LANE_W,520);
+    var f=Math.max(0,1-(now-S.flash[i])*5);
+    if(f>0){g.fillStyle=COL[i];g.globalAlpha=f*.45;g.fillRect(X0+i*LANE_W,0,LANE_W,HIT+30);g.globalAlpha=1}
+  }
+  g.fillStyle="#fff";g.globalAlpha=.8;g.fillRect(X0,HIT-2,8*LANE_W,4);g.globalAlpha=1;
+  g.textAlign="center";g.textBaseline="middle";
+  for(i=0;i<8;i++){
+    var cx=X0+i*LANE_W+LANE_W/2;
+    g.strokeStyle=COL[i];g.lineWidth=3;g.beginPath();g.arc(cx,HIT+2,24,0,7);g.stroke();
+    g.fillStyle="#fff";g.font="bold 22px Arial";g.fillText(KEYS[i].toUpperCase(),cx,HIT+3);
+  }
+  S.notes.forEach(function(n){
+    if(n.state===1)return;
+    var y=HIT-(n.t-now)/FALL*HIT;
+    if(y<-30||y>540)return;
+    var cx=X0+n.lane*LANE_W+LANE_W/2;
+    g.globalAlpha=n.state===2?.25:1;
+    g.fillStyle=COL[n.lane];g.beginPath();g.arc(cx,y,22,0,7);g.fill();
+    g.strokeStyle="#fff";g.lineWidth=3;g.stroke();
+    g.fillStyle="#1b1030";g.font="bold 20px Arial";g.fillText(KEYS[n.lane].toUpperCase(),cx,y+1);
+    g.globalAlpha=1;
+  });
+  g.textAlign="left";g.fillStyle="#fff";g.font="bold 20px Arial";
+  g.fillText("Score "+S.score,10,24);
+  g.fillText("Combo "+S.combo,10,50);
+  g.font="14px Arial";g.fillStyle="#c9b8e8";g.fillText(S.song.name,10,74);
+  // rock meter
+  g.fillStyle="rgba(255,255,255,.15)";g.fillRect(660,20,36,300);
+  g.fillStyle=S.meter>.66?"#6bdc6b":S.meter>.33?"#ffd23f":"#ff4d6d";
+  g.fillRect(660,320-300*S.meter,36,300*S.meter);
+  g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(660,20,36,300);
+  g.textAlign="center";g.font="12px Arial";g.fillStyle="#fff";g.fillText("ROCK",678,334);
+  if(now-S.msgT<.5){g.font="bold 26px Arial";g.fillStyle=S.msg==="Miss"?"#ff6b6b":"#ffcf5a";g.fillText(S.msg,X0+4*LANE_W,HIT-70)}
+  if(now<S.t0-.5){g.font="bold 34px Arial";g.fillStyle="#ffcf5a";g.fillText("Get ready… "+Math.ceil(S.t0-now),X0+4*LANE_W,200)}
+}
+function loop(){
+  var now=ac.currentTime;
+  update(now);draw(now);
+  if(!S.over)raf=requestAnimationFrame(loop);
+}
+function toMenu(){
+  cancelAnimationFrame(raf);
+  if(ac){ac.close();ac=null}
+  S=null;endEl.style.display="none";menu.style.display="flex";
+  g.clearRect(0,0,720,520);
+}
+var box=document.getElementById("songs"),tabs=document.getElementById("tabs"),gd=document.getElementById("gdesc");
+function showGrade(i){
+  grade=i;var G=GRADES[i];
+  gd.textContent=G.name+" ("+G.sub+"): "+G.desc;
+  Array.prototype.forEach.call(tabs.children,function(b,j){b.className=j===i?"on":""});
+  box.innerHTML="";
+  G.songs.forEach(function(sg){
+    var b=document.createElement("button");b.textContent=sg.name;
+    b.onclick=function(){start(sg)};box.appendChild(b);
+  });
+}
+GRADES.forEach(function(G,i){
+  var b=document.createElement("button");b.innerHTML=G.name+"<br><small>"+G.sub+"</small>";
+  b.onclick=function(){showGrade(i)};tabs.appendChild(b);
+});
+showGrade(0);
+document.getElementById("again").onclick=function(){if(ac){ac.close();ac=null}start(cur)};
+document.getElementById("back").onclick=toMenu;
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){if(S)toMenu();return}
+  if(e.repeat||!S)return;
+  var k=e.key.toLowerCase();
+  if(KEYS.indexOf(k)>=0){e.preventDefault();press(k)}
+});
+})();
+</script>
+</body>
+</html>
